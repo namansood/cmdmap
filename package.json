@@ -1,0 +1,25 @@
+{
+  "name": "cmdmap",
+  "version": "0.0.1",
+  "description": "Maps command line arguments to a Web API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/namansood/cmdmap.git"
+  },
+  "author": "Naman Sood",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/namansood/cmdmap/issues"
+  },
+  "homepage": "https://github.com/namansood/cmdmap#readme",
+  "devDependencies": {
+    "express": "^4.17.1",
+    "mocha": "^8.1.0",
+    "multer": "^1.4.2",
+    "supertest": "^4.0.2"
+  }
+}
