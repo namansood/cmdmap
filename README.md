@@ -81,7 +81,7 @@ The JSON object returned contains the following fields:
         }
     ];
 
-    app.post('/ping', cmdmap.command('ping', pingArgs));
+    app.post('/ping', upload.none(), cmdmap.command('ping', pingArgs));
 
     const md5args = [
         {
