@@ -18,11 +18,6 @@ function createStringArg(pObj, value, sep) {
     else return value;
 }
 
-// todo: obj verification
-const createParam = function(obj) {
-    return obj;
-}
-
 const command = function(cmd, params = [], seperator = ' ') {
     const errorState = (res, err) => {
         res.status(400).send({
@@ -36,8 +31,6 @@ const command = function(cmd, params = [], seperator = ' ') {
 
         let providedParams = JSON.parse(JSON.stringify(req.body || {}));
         let providedFiles = req.file ? [ req.file ] : (req.files || []);
-
-        console.log(providedParams);
 
         for(let i in params) {
             const p = params[i];
@@ -96,14 +89,13 @@ const command = function(cmd, params = [], seperator = ' ') {
             }
         }
 
-        console.log('args: ' + JSON.stringify(args));
-
         const child = childProcess.spawn(cmd, args);
         
         const resp = {
             status: 'ok',
             stdout: '',
             stderr: '',
+            code: null
         };
 
         child.stdout.on('data', d => resp.stdout += d.toString());
@@ -125,6 +117,5 @@ const command = function(cmd, params = [], seperator = ' ') {
 
 module.exports = {
     types: paramTypes,
-    command: command,
-    param: createParam
+    command: command
 };
