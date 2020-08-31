@@ -50,6 +50,27 @@ cmdmap is a Connect-compatible middleware that allows you to map commands on you
         cmdmap.command('md5sum', md5args)
     );
 
+    const ddParams = [
+        cmdmap.param({
+            type: cmdmap.types.string,
+            param: 'if',
+            default: '/dev/urandom'
+        }),
+        cmdmap.param({
+            type: cmdmap.types.string,
+            param: 'bs',
+            default: '8'
+        }),
+        cmdmap.param({
+            type: cmdmap.types.string,
+            param: 'count',
+            name: 'chunks',
+            default: '1'
+        })
+    ];
+
+    app.post('/random', upload.none(), cmdmap.command('dd', ddParams, '='));
+
     app.listen(8000, () => console.log('Server listening at port 8000'));
 
 After starting server:

@@ -41,48 +41,59 @@ const command = function(cmd, params = [], seperator = ' ') {
 
         for(let i in params) {
             const p = params[i];
-            if(p.type === paramTypes.string && !providedParams[p.name]) {
-                if(p.default) {
-                    providedParams[p.name] = p.default;
+            if(!p.name) {
+                if(p.default && p.type === paramTypes.string) {
+                    args.push(createStringArg(p, p.default, seperator));
                 }
-
-                else if(p.required) {
-                    errorState(res, `Missing required parameter ${p.name}`);
-                    return;
-                }
-
                 else {
-                    continue;
+                    errorState(res, `Misconfigured unnamed parameter ${p.param}`);
                 }
             }
 
-            switch(p.type) {
-                case paramTypes.booleanTrue:
-                    if(providedParams[p.name])
-                        args.push(createBooleanArg(p));
-                    break;
-                case paramTypes.booleanFalse:
-                    if(!providedParams[p.name])
-                        args.push(createBooleanArg(p));
-                    break;
-                case paramTypes.string:
-                    args.push(createStringArg(p, providedParams[p.name], seperator));
-                    break;
-                case paramTypes.file:
-                    let file = null;
-                    if(providedFiles.length > 0) {
-                        file = providedFiles.shift();
-                        args.push(createStringArg(p, file.destination + '/' + file.filename, seperator));
+            else {
+                if(p.type === paramTypes.string && !providedParams[p.name]) {
+                    if(p.default) {
+                        providedParams[p.name] = p.default;
                     }
+
                     else if(p.required) {
-                        errorState(res, `No file uploaded to match required param ${p.name}`);
+                        errorState(res, `Missing required parameter ${p.name}`);
                         return;
                     }
-                    break;
-                default:
-                    errorState(res, `Invalid property type`);
-                    return;
-            };
+
+                    else {
+                        continue;
+                    }
+                }
+
+                switch(p.type) {
+                    case paramTypes.booleanTrue:
+                        if(providedParams[p.name])
+                            args.push(createBooleanArg(p));
+                        break;
+                    case paramTypes.booleanFalse:
+                        if(!providedParams[p.name])
+                            args.push(createBooleanArg(p));
+                        break;
+                    case paramTypes.string:
+                        args.push(createStringArg(p, providedParams[p.name], seperator));
+                        break;
+                    case paramTypes.file:
+                        let file = null;
+                        if(providedFiles.length > 0) {
+                            file = providedFiles.shift();
+                            args.push(createStringArg(p, file.destination + '/' + file.filename, seperator));
+                        }
+                        else if(p.required) {
+                            errorState(res, `No file uploaded to match required param ${p.name}`);
+                            return;
+                        }
+                        break;
+                    default:
+                        errorState(res, `Invalid property type`);
+                        return;
+                };
+            }
         }
 
         console.log('args: ' + JSON.stringify(args));
