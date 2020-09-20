@@ -1,6 +1,6 @@
 {
   "name": "cmdmap",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Maps command line arguments to a Web API",
   "main": "index.js",
   "scripts": {

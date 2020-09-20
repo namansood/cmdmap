@@ -18,7 +18,12 @@ function createStringArg(pObj, value, sep) {
     else return value;
 }
 
-const command = function(cmd, params = [], seperator = ' ') {
+const command = function(opts) {
+    let { cmd, params, seperator } = opts;
+    if(!cmd) throw Error('cmdmap: did not specify command to execute!');
+    if(!params) params = [];
+    if(!seperator) seperator = ' ';
+
     const errorState = (res, err) => {
         res.status(400).send({
             status: 'err',

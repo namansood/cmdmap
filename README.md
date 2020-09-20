@@ -35,13 +35,13 @@ For examples of some completed argument arrays, see the example below.
 
 ### 2. Using the middleware
 
-`cmdmap.command(cmd, args[, sep])` returns a middleware that will execute your command and return a JSON object.
+`cmdmap.command(opts)` returns a middleware that will execute your command and return a JSON object. `opts` is a JSON object with the following keys:
 
-Arguments:
-
-* `cmd`: The name of the command to be executed. This should be present on the PATH of the server at the time it was run.
-* `args`: The array of arguments formed as above.
-* `sep`: (optional, default `' '`) The separator used between the argument flags and values. For example, in `if=/dev/zero`, the separator is `'='`, and in `-c 4`, the separator is `' '`.
+|Key            |Description           |
+|---------------|----------------------|
+| cmd           | The name of the command to be executed. This should be present on the PATH of the server at the time it was run.|
+| args          | The array of arguments formed as above.|
+| seperator     | (optional, default `' '`) The separator used between the argument flags and values. For example, in `if=/dev/zero`, the separator is `'='`, and in `-c 4`, the separator is `' '`.|
 
 The JSON object returned contains the following fields:
 
@@ -64,7 +64,9 @@ The JSON object returned contains the following fields:
     const app = express();
     const upload = multer({ dest: '/tmp' });
 
-    app.post('/date', cmdmap.command('date'));
+    app.post('/date', cmdmap.command({
+        cmd: 'date'
+    }));
 
     const pingArgs = [
         {
@@ -81,7 +83,10 @@ The JSON object returned contains the following fields:
         }
     ];
 
-    app.post('/ping', upload.none(), cmdmap.command('ping', pingArgs));
+    app.post('/ping', upload.none(), cmdmap.command({
+        cmd: 'ping',
+        params: pingArgs
+    }));
 
     const md5args = [
         {
@@ -98,10 +103,13 @@ The JSON object returned contains the following fields:
 
     app.post('/md5sum',
         upload.single('checksumFile'),
-        cmdmap.command('md5sum', md5args)
+        cmdmap.command({
+            cmd: 'md5sum',
+            params: md5args
+        })
     );
 
-    const ddParams = [
+    const ddArgs = [
         {
             type: cmdmap.types.string,
             param: 'if',
@@ -120,7 +128,11 @@ The JSON object returned contains the following fields:
         }
     ];
 
-    app.post('/random', upload.none(), cmdmap.command('dd', ddParams, '='));
+    app.post('/random', upload.none(), cmdmap.command({
+        cmd: 'dd',
+        params: ddArgs,
+        seperator: '='
+    }));
 
     app.listen(8000, () => console.log('Server listening at port 8000'));
 
