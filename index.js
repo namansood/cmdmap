@@ -1,12 +1,17 @@
 const childProcess = require('child_process');
 const fs = require('fs');
 
-// enum
+// enums
 const paramTypes = Object.freeze({
     booleanTrue: {},
     booleanFalse: {},
     string: {},
     file: {}
+});
+
+const returnTypes = Object.freeze({
+    sendJSON: {},
+    exposeStdio: {}
 });
 
 function createBooleanArg(pObj) {
@@ -19,19 +24,36 @@ function createStringArg(pObj, value, sep) {
 }
 
 const command = function(opts) {
-    let { cmd, params, seperator } = opts;
+    let { cmd, params, seperator, returnType } = opts;
     if(!cmd) throw Error('cmdmap: did not specify command to execute!');
     if(!params) params = [];
     if(!seperator) seperator = ' ';
+    if(!returnType) returnType = returnTypes.sendJSON;
 
-    const errorState = (res, err) => {
-        res.status(400).send({
-            status: 'err',
-            error: err
-        });
-    };
+    return function(req, res, next) {
+        req.cmdmap = {};
 
-    return function(req, res) {
+        const errorState = (err) => {
+            if(returnType == returnTypes.sendJSON) {
+                res.status(400).send({
+                    status: 'err',
+                    error: err
+                });
+            }
+            else if(returnType == returnTypes.exposeStdio) {
+                next(err);
+            }
+        };
+
+        const deleteTemps = (req) => {
+            const files = req.file ? [ req.file ] : req.files;
+            if(files) {
+                for(f of files) {
+                    fs.unlinkSync(f.destination + '/' + f.filename);
+                }
+            }
+        };
+
         const args = [];
 
         let providedParams = JSON.parse(JSON.stringify(req.body || {}));
@@ -40,11 +62,16 @@ const command = function(opts) {
         for(let i in params) {
             const p = params[i];
             if(!p.name) {
-                if(p.default && p.type === paramTypes.string) {
-                    args.push(createStringArg(p, p.default, seperator));
+                if(p.default && (p.type === paramTypes.string || p.type === paramTypes.booleanTrue)) {
+                    if(p.type === paramTypes.string) {
+                        args.push(createStringArg(p, p.default, seperator));
+                    }
+                    else if(p.type === paramTypes.booleanTrue) {
+                        args.push(createBooleanArg(p));
+                    }
                 }
                 else {
-                    errorState(res, `Misconfigured unnamed parameter ${p.param}`);
+                    errorState(`Misconfigured unnamed parameter ${p.param}`);
                 }
             }
 
@@ -55,7 +82,7 @@ const command = function(opts) {
                     }
 
                     else if(p.required) {
-                        errorState(res, `Missing required parameter ${p.name}`);
+                        errorState(`Missing required parameter ${p.name}`);
                         return;
                     }
 
@@ -83,12 +110,12 @@ const command = function(opts) {
                             args.push(createStringArg(p, file.destination + '/' + file.filename, seperator));
                         }
                         else if(p.required) {
-                            errorState(res, `No file uploaded to match required param ${p.name}`);
+                            errorState(`No file uploaded to match required param ${p.name}`);
                             return;
                         }
                         break;
                     default:
-                        errorState(res, `Invalid property type`);
+                        errorState(`Invalid property type`);
                         return;
                 };
             }
@@ -96,31 +123,42 @@ const command = function(opts) {
 
         const child = childProcess.spawn(cmd, args);
         
-        const resp = {
-            status: 'ok',
-            stdout: '',
-            stderr: '',
-            code: null
-        };
+        if(returnType == returnTypes.sendJSON) {
+            const resp = {
+                status: 'ok',
+                stdout: '',
+                stderr: '',
+                code: null
+            };
 
-        child.stdout.on('data', d => resp.stdout += d.toString());
-        child.stderr.on('data', d => resp.stderr += d.toString());
+            child.stdout.on('data', d => resp.stdout += d.toString());
+            child.stderr.on('data', d => resp.stderr += d.toString());
 
-        child.on('close', code => {
-            resp.code = code;
-            res.send(resp);
+            child.on('close', code => {
+                resp.code = code;
+                res.send(resp);
 
-            const files = req.file ? [ req.file ] : req.files;
-            if(files) {
-                for(f of files) {
-                    fs.unlinkSync(f.destination + '/' + f.filename);
-                }
-            }
-        });
+                deleteTemps(req);
+            });
+        }
+        else if(returnType == returnTypes.exposeStdio) {
+            req.cmdmap.stdout = child.stdout;
+            req.cmdmap.stderr = child.stderr;
+            req.cmdmap.stdin = child.stdin;
+            req.cmdmap.waitForExit = new Promise((resolve) => {
+                child.on('close', code => {
+                    deleteTemps(req);
+                    resolve(code);
+                });
+            });
+
+            next();
+        }
     };
 }
 
 module.exports = {
     types: paramTypes,
+    returnTypes: returnTypes,
     command: command
 };
